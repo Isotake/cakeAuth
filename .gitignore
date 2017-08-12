@@ -1,0 +1,7 @@
+/config/app.php
+/vendor/*
+!/vendor/.gitkeep
+/tmp/*
+!/tmp/.gitkeep
+/logs/*
+!/logs/.gitkeep
