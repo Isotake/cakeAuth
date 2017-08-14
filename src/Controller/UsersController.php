@@ -2,6 +2,7 @@
 namespace App\Controller;
 
 use App\Controller\AppController;
+use Cake\Event\Event;
 
 /**
  * Users Controller
@@ -12,6 +13,34 @@ use App\Controller\AppController;
  */
 class UsersController extends AppController
 {
+	public function initialize()
+	{
+		parent::initialize();
+		$this->Session = $this->request->session();
+	}
+
+	public function beforeFilter(Event $event)
+	{
+		parent::beforeFilter($event);
+		$this->Auth->allow(['index', 'view', 'add', 'login', 'logout', 'confirm', 'complete']);
+	}
+
+	public function login()
+	{
+		if($this->request->is('post')){
+			$user = $this->Auth->identify();
+			if($user){
+				$this->Auth->setUser($user);
+				$user_id = $user['id'];
+				return $this->redirect(['action' => 'view/'.$user_id]);
+			}
+			$this->Flash->error(__('Invalid username or password, try again'));
+		}
+	}
+
+	public function logout(){
+		return $this->redirect($this->Auth->logout());
+	}
 
     /**
      * Index method
@@ -43,6 +72,43 @@ class UsersController extends AppController
         $this->set('_serialize', ['user']);
     }
 
+	public function complete()
+	{
+        if ($this->request->is('post')) {
+            $user = $this->Auth->identify();
+            if ($user) {
+                $this->Auth->setUser($user);
+				$user_id = $user['id'];
+                $this->Flash->success(__('Log In Success.'));
+				return $this->redirect(['action' => 'view/'.$user_id]);
+            }
+            $this->Flash->error('Your username or password is incorrect.');
+		}
+	}
+
+	public function confirm()
+	{
+		$req_data = $this->Session->read('Signin.valid');
+		if (!$req_data) {
+			return $this->redirect(['action' => 'add']);
+		}
+
+        $user = $this->Users->newEntity();
+		$user = $this->Users->patchEntity($user, $req_data);
+        if ($this->request->is('post')) {
+			if ($user->errors()) {
+				return $this->redirect(['action' => 'add']);
+			}
+			$this->Session->delete('Signin.valid');
+
+            if ($this->Users->save($user)) {
+                return $this->redirect(['action' => 'complete']);
+            }
+            $this->Flash->error(__('The user could not be saved. Please, try again.'));
+        }
+        $this->set('user', $user);
+	}
+
     /**
      * Add method
      *
@@ -52,13 +118,14 @@ class UsersController extends AppController
     {
         $user = $this->Users->newEntity();
         if ($this->request->is('post')) {
-            $user = $this->Users->patchEntity($user, $this->request->getData());
-            if ($this->Users->save($user)) {
-                $this->Flash->success(__('The user has been saved.'));
-
-                return $this->redirect(['action' => 'index']);
-            }
-            $this->Flash->error(__('The user could not be saved. Please, try again.'));
+			$req_data = $this->request->getData();
+			$user = $this->Users->patchEntity($user, $req_data);
+			if(!$user->errors()){
+				$this->Session->write('Signin.valid', $req_data);
+				return $this->redirect(['action' => 'confirm']);
+			} else {
+				$this->Flash->error(__('Something wrong... Please, try again.'));
+			}
         }
         $this->set(compact('user'));
         $this->set('_serialize', ['user']);
