@@ -42,13 +42,15 @@ class AppController extends Controller
         parent::initialize();
 
         $this->loadComponent('RequestHandler');
+	$this->Session = $this->request->session();
+        $this->loadComponent('Cookie');
         $this->loadComponent('Flash');
-		$this->loadComponent('Auth', [
-			'logoutRedirect' => [
-				'controller' => 'users'
-			,	'action' => 'login'
-			]
-		]);
+	$this->loadComponent('Auth', [
+		'logoutRedirect' => [
+			'controller' => 'users'
+		,	'action' => 'login'
+		]
+	]);
 
         /*
          * Enable the following components for recommended CakePHP security settings.

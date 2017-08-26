@@ -16,7 +16,6 @@ class UsersController extends AppController
 	public function initialize()
 	{
 		parent::initialize();
-		$this->Session = $this->request->session();
 	}
 
 	public function beforeFilter(Event $event)
@@ -30,16 +29,41 @@ class UsersController extends AppController
 		if($this->request->is('post')){
 			$user = $this->Auth->identify();
 			if($user){
+				if($this->request->data('autologin') == '1'){
+				    $this->_setupAutoLogin($user);
+				}
 				$this->Auth->setUser($user);
+				$this->Flash->success('Login Success.');
 				$user_id = $user['id'];
 				return $this->redirect(['action' => 'view/'.$user_id]);
 			}
 			$this->Flash->error(__('Invalid username or password, try again'));
+		} else {
+		    $autoLoginKey = $this->Cookie->read('AUTO_LOGIN');
+		    if($autoLoginKey){
+			$this->loadModel('AutoLogins');
+			$query = $this->AutoLogins->findByAutoLoginKey($autoLoginKey);
+			if($query->count() > 0){
+			    $user_id = $query->first()->user_id;
+			    $user = $this->Users->get($user_id)->toArray();
+			    if($user){
+				$this->_destroyAutoLogin($user);
+				$this->_setupAutoLogin($user);
+				$this->Auth->setUser($user);
+				$this->Flash->success('Auto Login Success.');
+				return $this->redirect(['action' => 'view/'.$user_id]);
+			    }
+			} else {
+			    $this->Cookie->delete('AUTO_LOGIN');
+			}
+		    }
 		}
 	}
 
 	public function logout(){
-		return $this->redirect($this->Auth->logout());
+	    $this->_destroyAutoLogin($this->Auth->user());
+	    $this->Flash->success('You are now logged out.');
+	    return $this->redirect($this->Auth->logout());
 	}
 
     /**
@@ -174,5 +198,36 @@ class UsersController extends AppController
         }
 
         return $this->redirect(['action' => 'index']);
+    }
+    
+    private function _setupAutoLogin($user)
+    {
+	$this->loadModel('AutoLogins');
+	$autoLoginKey = sha1(uniqid() . mt_rand(1, 999999999) . '_auto_login');
+	$entity = $this->AutoLogins->newEntity([
+	    'user_id' => $user['id'],
+	    'auto_login_key' => $autoLoginKey,
+	]);
+	$this->AutoLogins->save($entity);
+	
+	$this->Cookie->config([
+	    'expires' => '+7 days',
+	    'path' => '/',
+	]);
+	$this->Cookie->write('AUTO_LOGIN', $autoLoginKey);
+    }
+    
+    private function _destroyAutoLogin($user)
+    {
+	$this->loadModel('AutoLogins');
+	try {
+	    $entity = $this->AutoLogins->find('all')->where(['user_id' => $user['id']])->first();
+	    if($entity){
+		$this->AutoLogins->delete($entity);
+		$this->Cookie->delete('AUTO_LOGIN');
+	    }
+	} catch (RecordNotFoundException $e){
+	    $this->Cookie->delete('AUTO_LOGIN');
+	}
     }
 }
