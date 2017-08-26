@@ -22,7 +22,7 @@ class UsersController extends AppController
 	public function beforeFilter(Event $event)
 	{
 		parent::beforeFilter($event);
-		$this->Auth->allow(['index', 'view', 'add', 'login', 'logout', 'confirm', 'complete']);
+		$this->Auth->allow(['index', 'view', 'signup', 'login', 'logout', 'confirm', 'complete']);
 	}
 
 	public function login()
@@ -72,49 +72,49 @@ class UsersController extends AppController
         $this->set('_serialize', ['user']);
     }
 
-	public function complete()
-	{
-        if ($this->request->is('post')) {
-            $user = $this->Auth->identify();
-            if ($user) {
-                $this->Auth->setUser($user);
-				$user_id = $user['id'];
-                $this->Flash->success(__('Log In Success.'));
-				return $this->redirect(['action' => 'view/'.$user_id]);
-            }
-            $this->Flash->error('Your username or password is incorrect.');
-		}
-	}
-
-	public function confirm()
-	{
-		$req_data = $this->Session->read('Signin.valid');
-		if (!$req_data) {
-			return $this->redirect(['action' => 'add']);
-		}
-
-        $user = $this->Users->newEntity();
-		$user = $this->Users->patchEntity($user, $req_data);
-        if ($this->request->is('post')) {
-			if ($user->errors()) {
-				return $this->redirect(['action' => 'add']);
-			}
-			$this->Session->delete('Signin.valid');
-
-            if ($this->Users->save($user)) {
-                return $this->redirect(['action' => 'complete']);
-            }
-            $this->Flash->error(__('The user could not be saved. Please, try again.'));
+    public function complete()
+    {
+    if ($this->request->is('post')) {
+        $user = $this->Auth->identify();
+        if ($user) {
+            $this->Auth->setUser($user);
+                            $user_id = $user['id'];
+            $this->Flash->success(__('Log In Success.'));
+                            return $this->redirect(['action' => 'view/'.$user_id]);
         }
-        $this->set('user', $user);
-	}
+        $this->Flash->error('Your username or password is incorrect.');
+            }
+    }
+
+    public function confirm()
+    {
+            $req_data = $this->Session->read('Signin.valid');
+            if (!$req_data) {
+                    return $this->redirect(['action' => 'add']);
+            }
+
+    $user = $this->Users->newEntity();
+            $user = $this->Users->patchEntity($user, $req_data);
+    if ($this->request->is('post')) {
+                    if ($user->errors()) {
+                            return $this->redirect(['action' => 'add']);
+                    }
+                    $this->Session->delete('Signin.valid');
+
+        if ($this->Users->save($user)) {
+            return $this->redirect(['action' => 'complete']);
+        }
+        $this->Flash->error(__('The user could not be saved. Please, try again.'));
+    }
+    $this->set('user', $user);
+    }
 
     /**
      * Add method
      *
      * @return \Cake\Http\Response|null Redirects on successful add, renders view otherwise.
      */
-    public function add()
+    public function signup()
     {
         $user = $this->Users->newEntity();
         if ($this->request->is('post')) {
