@@ -16,7 +16,7 @@ class GentelellaController extends AppController
     public function initialize()
     {
 	    parent::initialize();
-	    $this->layout = '';
+            $this->viewBuilder()->layout('');
     }
 
     public function index()
